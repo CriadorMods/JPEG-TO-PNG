@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<link rel="icon" href="favicon.ico">
+<title>JPEG to PNG Converter</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f8f8;
+  }
+
+  .container {
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 30px;
+    border-radius: 15px;
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  h1 {
+    color: #333333;
+    margin-bottom: 20px;
+  }
+
+  input[type="file"] {
+    display: none;
+  }
+
+  label {
+    display: inline-block;
+    background-color: #4CAF50;
+    color: #ffffff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+  label:hover {
+    background-color: #45a049;
+  }
+
+  #preview {
+    margin-top: 20px;
+  }
+
+  #preview img {
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+  }
+
+  #preview img:hover {
+    transform: scale(1.05);
+  }
+
+  #loadingIndicator {
+    display: none;
+    color: #666666;
+    margin-top: 20px;
+  }
+
+  #downloadLink {
+    display: none;
+    margin-top: 20px;
+  }
+
+  #downloadLink a {
+    display: inline-block;
+    background-color: #4CAF50;
+    color: #ffffff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+  }
+
+  #downloadLink a:hover {
+    background-color: #45a049;
+  }
+
+  .dragover {
+    border: 2px dashed #007bff;
+    background-color: #cce5ff;
+  }
+
+  #dimensionInputs {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  #dimensionInputs input {
+    width: calc(50% - 10px);
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+  }
+
+  #compressionSlider {
+    margin-top: 20px;
+    width: 100%;
+  }
+
+  #warning-message {
+            margin-top: 20px;
+            padding: 10px;
+            background-image: linear-gradient(to right, red, orange);
+            color: #333;
+            border-radius: 5px;
+            display: none;
+        }
+
+        #warning-message .warning-icon {
+            margin-right: 10px;
+        }
+
+</style>
+</head>
+<body>
+<div class="container" id="container" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragenter="handleDragEnter(event)" ondragleave="handleDragLeave(event)">
+  <h1>JPEG to PNG Converter</h1>
+  <input type="file" accept="image/jpeg" id="inputImage" onchange="handleImageSelect(event)">
+  <label for="inputImage">Select JPEG Image</label>
+  <div id="dimensionInputs">
+    <input type="number" id="widthInput" placeholder="Width (px)">
+    <input type="number" id="heightInput" placeholder="Height (px)">
+  </div>
+  <input type="range" min="0" max="100" value="80" class="slider" id="compressionSlider">
+  <div id="loadingIndicator">Converting...</div>
+  <div id="preview"></div>
+  <div id="downloadLink"></div>
+  <div id="warning-message">
+    <span class="warning-icon"><i class="fas fa-exclamation-triangle"></i></span>
+    <span>The Slider above this msg is a compression slider! (btw this site has Drag & Drop).</span>
+</div>
+</div>
+<script>
+  function handleImageSelect(event) {
+    const file = event.target.files[0];
+    handleFile(file);
+  }
+
+  function handleDrop(event) {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    handleFile(file);
+  }
+
+  function handleDragOver(event) {
+    event.preventDefault();
+  }
+
+  function handleDragEnter(event) {
+    event.preventDefault();
+    event.currentTarget.classList.add('dragover');
+  }
+
+  function handleDragLeave(event) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('dragover');
+  }
+
+  function handleFile(file) {
+    if (!file) {
+      alert('Please select a file.');
+      return;
+    }
+
+    if (!file.type.match('image/jpeg')) {
+      alert('Please select a JPEG image.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const img = new Image();
+      img.onload = function() {
+        const widthInput = document.getElementById('widthInput');
+        const heightInput = document.getElementById('heightInput');
+        const width = widthInput.value ? parseInt(widthInput.value) : img.width;
+        const height = heightInput.value ? parseInt(heightInput.value) : img.height;
+        const compression = document.getElementById('compressionSlider').value / 100;
+        displayLoadingIndicator(true);
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        const pngData = canvas.toDataURL('image/png', compression);
+        displayConvertedPNG(pngData);
+        displayLoadingIndicator(false);
+        displayDownloadLink(pngData);
+      };
+      img.onerror = function() {
+        alert('Failed to load the image.');
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function displayConvertedPNG(pngData) {
+    const preview = document.getElementById('preview');
+    preview.innerHTML = '';
+    const pngImage = new Image();
+    pngImage.src = pngData;
+    preview.appendChild(pngImage);
+  }
+
+  function displayLoadingIndicator(show) {
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    loadingIndicator.style.display = show ? 'block' : 'none';
+  }
+
+  function displayDownloadLink(pngData) {
+    const downloadLink = document.getElementById('downloadLink');
+    downloadLink.innerHTML = '';
+    const link = document.createElement('a');
+    link.href = pngData;
+    link.download = 'converted_image.png';
+    link.textContent = 'Download PNG';
+    downloadLink.appendChild(link);
+    downloadLink.style.display = 'block';
+  }
+
+  // Update the output value when slider changes
+  document.getElementById('compressionSlider').oninput = function() {
+    document.getElementById('compressionValue').textContent = this.value;
+  };
+  document.addEventListener('DOMContentLoaded', function() {
+document.getElementById('warning-message').style.display = 'block';
+});
+</script>
+</body>
+</html>
+
+
