@@ -241,6 +241,15 @@
   document.addEventListener('DOMContentLoaded', function() {
 document.getElementById('warning-message').style.display = 'block';
 });
+  const storedColor = localStorage.getItem('backgroundColor');
+
+if (storedColor) {
+if (storedColor.startsWith('linear-gradient')) {
+document.body.style.background = storedColor;
+} else {
+document.body.style.backgroundColor = storedColor;
+}
+}
 </script>
 </body>
 </html>
